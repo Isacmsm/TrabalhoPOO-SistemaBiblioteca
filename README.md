@@ -47,7 +47,7 @@ java -cp ".:lib/gson-2.10.1.jar:bin" Main
     - Exibe tempo de busca sequencial e binária
     - Mini-menu após busca: possibilidade de repetir várias vezes
 - **Importar livros reais da API OpenLibrary**  
-    - Até 900 livros: 300 "Science Fiction", 300 "Fantasy", até 300 "History"
+    - Até 800 livros: 300 "Science Fiction", 300 "Fantasy", até 200 "History"
     - Lista inicia sempre vazia, importar pelo menu
 - **Gerar livros de teste** offline
 - **Limpar toda a lista**
