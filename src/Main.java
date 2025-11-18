@@ -1,8 +1,11 @@
+//POR FAVOR NÃO DELETAR COMENTARIOS DO CODIGO, EU NAO VOU LEMBRAR ONDE ESTA CADA COISA E O QUE O CODIGO FAZ SE DELETAR.
+//POR FAVOR NÃO DELETAR COMENTARIOS DO CODIGO, EU NAO VOU LEMBRAR ONDE ESTA CADA COISA E O QUE O CODIGO FAZ SE DELETAR.
+//POR FAVOR NÃO DELETAR COMENTARIOS DO CODIGO, EU NAO VOU LEMBRAR ONDE ESTA CADA COISA E O QUE O CODIGO FAZ SE DELETAR.
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
-import com.google.gson.*;
+import com.google.gson.*; //Ta mostrando erro, mas o codigo compila e roda normalmente no terminal, so o ide que ta zuado, não mexer nisso por favor.
 
 class Livro {
     private String titulo;
@@ -33,52 +36,58 @@ class Biblioteca {
     private Scanner scanner = new Scanner(System.in);
 
     public Biblioteca() {
-        try {
-            importarLivrosMultiplasCategorias();
-            System.out.println("Livros carregados da API: " + livros.size());
-        } catch (Exception e) {
-            System.out.println("Erro ao importar livros da API: " + e.getMessage());
-            e.printStackTrace();
-        }
-        if (livros.isEmpty()) {
-            System.out.println("API ou conexão não retornou livros. Gerando livros de teste...");
-            gerarLivrosTeste();
-            System.out.println("Usando livros de teste: " + livros.size());
-        }
+        livros = new ArrayList<>();
+        System.out.println("Sistema iniciado com lista de livros vazia.");
+        // Descomentar a linha abaixo caso a API esteja indisponível, por favor não tirar, serve pra caso a api caia.
+        // gerarLivrosTeste();
     }
 
-    // Carrega até 100 livros de cada categoria
+    // Aqui carrega livros de várias categorias da API (A categoria historia so tem 217 livros no total, não testei o limite das outras categorias. Deu preguiça de testar tudo, se quiser mais livros que 800 você testa georgio/felipe.)
     public void importarLivrosMultiplasCategorias() {
         livros.clear();
-        livros.addAll(carregarLivrosDaAPI("science_fiction"));
-        livros.addAll(carregarLivrosDaAPI("fantasy"));
-        livros.addAll(carregarLivrosDaAPI("history"));
+        livros.addAll(carregarLivrosDaAPI("science_fiction", 300));
+        livros.addAll(carregarLivrosDaAPI("fantasy", 300));
+        livros.addAll(carregarLivrosDaAPI("history", 200));
+        System.out.println("Livros carregados da API: " + livros.size());
     }
 
-    public List<Livro> carregarLivrosDaAPI(String categoriaAPI) {
+    // Importa até o limite usando páginas (offsets) de 100 livros por vez (por favor eu não sei como eu fiz funcionar isso direito, mas funciona, ok? Por favor não mexer, se quebrar so deus sabe como concertar!)
+    public List<Livro> carregarLivrosDaAPI(String categoriaAPI, int limite) {
         List<Livro> lista = new ArrayList<>();
-        try {
-            URL url = new URL("https://openlibrary.org/subjects/" + categoriaAPI + ".json?limit=100");
-            HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
-            conexao.setRequestMethod("GET");
-            if (conexao.getResponseCode() == 200) {
-                InputStreamReader reader = new InputStreamReader(conexao.getInputStream());
-                JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
-                JsonArray obras = json.getAsJsonArray("works");
-                for (JsonElement elem : obras) {
-                    JsonObject obj = elem.getAsJsonObject();
-                    String titulo = obj.get("title").getAsString();
-                    String autor = obj.has("authors") && obj.get("authors").getAsJsonArray().size() > 0
-                       ? obj.get("authors").getAsJsonArray().get(0).getAsJsonObject().get("name").getAsString()
-                       : "Autor desconhecido";
-                    String isbn = obj.has("cover_id") ? "OLID" + obj.get("cover_id").getAsString() : "N/A";
-                    String categoria = categoriaAPI.substring(0,1).toUpperCase() + categoriaAPI.substring(1).replace("_"," ");
-                    lista.add(new Livro(titulo, autor, isbn, categoria));
+        int offset = 0;
+        int porPagina = 100;
+        while (lista.size() < limite) {
+            int restante = limite - lista.size();
+            int pegar = Math.min(porPagina, restante);
+            try {
+                URL url = new URL("https://openlibrary.org/subjects/" + categoriaAPI + ".json?limit=" + pegar + "&offset=" + offset);
+                HttpURLConnection conexao = (HttpURLConnection) url.openConnection();
+                conexao.setRequestMethod("GET");
+                if (conexao.getResponseCode() == 200) {
+                    InputStreamReader reader = new InputStreamReader(conexao.getInputStream());
+                    JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+                    JsonArray obras = json.getAsJsonArray("works");
+                    if (obras.size() == 0) break; // Sem mais resultados
+                    for (JsonElement elem : obras) {
+                        JsonObject obj = elem.getAsJsonObject();
+                        String titulo = obj.get("title").getAsString();
+                        String autor = obj.has("authors") && obj.get("authors").getAsJsonArray().size() > 0
+                            ? obj.get("authors").getAsJsonArray().get(0).getAsJsonObject().get("name").getAsString()
+                            : "Autor desconhecido";
+                        String isbn = obj.has("cover_id") ? "OLID" + obj.get("cover_id").getAsString() : "N/A";
+                        String categoria = categoriaAPI.substring(0,1).toUpperCase() + categoriaAPI.substring(1).replace("_", " ");
+                        lista.add(new Livro(titulo, autor, isbn, categoria));
+                        if (lista.size() >= limite) break;
+                    }
+                } else {
+                    break;
                 }
+            } catch (Exception e) {
+                System.out.println("Erro ao buscar categoria " + categoriaAPI + ": " + e.getMessage());
+                e.printStackTrace();
+                break;
             }
-        } catch (Exception e) {
-            System.out.println("Erro ao buscar categoria " + categoriaAPI + ": " + e.getMessage());
-            e.printStackTrace();
+            offset += pegar;
         }
         return lista;
     }
@@ -95,6 +104,7 @@ class Biblioteca {
                                (i % 5 == 3) ? "História" : "Arte";
             livros.add(new Livro(titulo, autor, isbn, categoria));
         }
+        System.out.println("Lista preenchida com livros de teste: " + livros.size());
     }
 
     public void cadastrarLivro() {
@@ -128,71 +138,89 @@ class Biblioteca {
         }
     }
 
+    // O menu ta aqui.
     public void buscarPorCampo() {
-        System.out.println("Buscar por: 1-Título, 2-Autor, 3-ISBN, 4-Categoria");
-        int opcao = Integer.parseInt(scanner.nextLine());
-        System.out.print("Digite o termo de busca: ");
-        String termo = scanner.nextLine();
+        while (true) {
+            System.out.println("Buscar por: 1-Título, 2-Autor, 3-ISBN, 4-Categoria");
+            int opcao = Integer.parseInt(scanner.nextLine());
+            System.out.print("Digite o termo de busca: ");
+            String termo = scanner.nextLine();
 
-        List<Livro> resultados = new ArrayList<>();
+            List<Livro> resultados = new ArrayList<>();
 
-        // Busca sequencial
-        long inicioSeq = System.nanoTime();
-        for (Livro livro : livros) {
+            // Sequencial
+            long inicioSeq = System.nanoTime();
+            for (Livro livro : livros) {
+                switch (opcao) {
+                    case 1:
+                        if (livro.getTitulo().equalsIgnoreCase(termo)) resultados.add(livro);
+                        break;
+                    case 2:
+                        if (livro.getAutor().equalsIgnoreCase(termo)) resultados.add(livro);
+                        break;
+                    case 3:
+                        if (livro.getIsbn().equalsIgnoreCase(termo)) resultados.add(livro);
+                        break;
+                    case 4:
+                        if (livro.getCategoria().equalsIgnoreCase(termo)) resultados.add(livro);
+                        break;
+                }
+            }
+            long fimSeq = System.nanoTime();
+            System.out.printf("Busca sequencial encontrou %d livros em %.3f ms\n", resultados.size(), (fimSeq-inicioSeq)/1e6);
+            exibirLista(resultados);
+
+            // Binária
+            List<Livro> ordenados = new ArrayList<>(livros);
+            Comparator<Livro> comp;
             switch (opcao) {
                 case 1:
-                    if (livro.getTitulo().equalsIgnoreCase(termo)) resultados.add(livro);
+                    comp = Comparator.comparing(Livro::getTitulo, String.CASE_INSENSITIVE_ORDER);
                     break;
                 case 2:
-                    if (livro.getAutor().equalsIgnoreCase(termo)) resultados.add(livro);
+                    comp = Comparator.comparing(Livro::getAutor, String.CASE_INSENSITIVE_ORDER);
                     break;
                 case 3:
-                    if (livro.getIsbn().equalsIgnoreCase(termo)) resultados.add(livro);
+                    comp = Comparator.comparing(Livro::getIsbn, String.CASE_INSENSITIVE_ORDER);
                     break;
                 case 4:
-                    if (livro.getCategoria().equalsIgnoreCase(termo)) resultados.add(livro);
+                    comp = Comparator.comparing(Livro::getCategoria, String.CASE_INSENSITIVE_ORDER);
                     break;
+                default:
+                    comp = null;
             }
-        }
-        long fimSeq = System.nanoTime();
-        System.out.printf("Busca sequencial encontrou %d livros em %.3f ms\n", resultados.size(), (fimSeq-inicioSeq)/1e6);
-        exibirLista(resultados);
+            ordenados.sort(comp);
 
-        // Busca binária (por campo)
-        List<Livro> ordenados = new ArrayList<>(livros);
-        Comparator<Livro> comp;
-        switch (opcao) {
-            case 1:
-                comp = Comparator.comparing(Livro::getTitulo, String.CASE_INSENSITIVE_ORDER);
-                break;
-            case 2:
-                comp = Comparator.comparing(Livro::getAutor, String.CASE_INSENSITIVE_ORDER);
-                break;
-            case 3:
-                comp = Comparator.comparing(Livro::getIsbn, String.CASE_INSENSITIVE_ORDER);
-                break;
-            case 4:
-                comp = Comparator.comparing(Livro::getCategoria, String.CASE_INSENSITIVE_ORDER);
-                break;
-            default:
-                comp = null;
-        }
-        ordenados.sort(comp);
+            long inicioBin = System.nanoTime();
+            int idx = buscaBinariaPorCampo(ordenados, termo, opcao);
+            long fimBin = System.nanoTime();
+            if (idx >= 0) {
+                System.out.println("Busca binária encontrou 1 livro (primeira ocorrência) em " +
+                    String.format("%.3f", (fimBin-inicioBin)/1e6) + " ms");
+                System.out.println(ordenados.get(idx));
+            } else {
+                System.out.println("Busca binária não encontrou nenhum livro. Tempo: " +
+                    String.format("%.3f", (fimBin-inicioBin)/1e6) + " ms");
+            }
 
-        long inicioBin = System.nanoTime();
-        int idx = buscaBinariaPorCampo(ordenados, termo, opcao);
-        long fimBin = System.nanoTime();
-        if (idx >= 0) {
-            System.out.println("Busca binária encontrou 1 livro (primeira ocorrência) em " +
-                String.format("%.3f", (fimBin-inicioBin)/1e6) + " ms");
-            System.out.println(ordenados.get(idx));
-        } else {
-            System.out.println("Busca binária não encontrou nenhum livro. Tempo: " +
-                String.format("%.3f", (fimBin-inicioBin)/1e6) + " ms");
+            // Mini menu so para não voltar para o outro menu grande automaticamente.
+            System.out.println("1 - Buscar novo livro");
+            System.out.println("0 - Voltar ao menu principal");
+            System.out.print("Escolha: ");
+            int subopcao;
+            try {
+                subopcao = Integer.parseInt(scanner.nextLine());
+            } catch (Exception e) {
+                subopcao = 0;
+            }
+            if (subopcao == 1) {
+                continue; // Repete a busca
+            } else {
+                break; // Volta ao menu principal
+            }
         }
     }
 
-    // Busca binária para qualquer campo (case insensitive)
     public int buscaBinariaPorCampo(List<Livro> lista, String termo, int campo) {
         int ini = 0, fim = lista.size()-1;
         while (ini <= fim) {
@@ -252,10 +280,13 @@ class Biblioteca {
         }
     }
 
-    // Menu: opção para importar livros da API novamente
+    public void limparLista() {
+        livros.clear();
+        System.out.println("Lista de livros esvaziada!");
+    }
+
     public void importarLivrosAPI() {
         importarLivrosMultiplasCategorias();
-        System.out.println("Livros carregados da API: " + livros.size());
     }
 
     public void menu() {
@@ -268,6 +299,8 @@ class Biblioteca {
             System.out.println("5 - Filtrar Livros por Categoria");
             System.out.println("6 - Relatório Estatístico");
             System.out.println("7 - Importar Livros da API");
+            System.out.println("8 - Limpar Lista de Livros");
+            System.out.println("9 - Gerar Livros de Teste");
             System.out.println("0 - Sair");
             System.out.print("Escolha a opção: ");
 
@@ -280,6 +313,8 @@ class Biblioteca {
                 case 5: filtrarPorCategoria(); break;
                 case 6: relatorioEstatistico(); break;
                 case 7: importarLivrosAPI(); break;
+                case 8: limparLista(); break;
+                case 9: gerarLivrosTeste(); break;
                 case 0: return;
                 default: System.out.println("Opção inválida!");
             }
