@@ -14,10 +14,15 @@ Sistema orientado a objetos para gerenciar livros de uma biblioteca via console.
 
 BIBLIOTECA/
 ├── .vscode/        # (Configurações do VS Code, opcional)
+
 ├── bin/            # (Arquivos compilados .class, gerados automaticamente)
+
 ├── lib/            # (Dependências externas, por exemplo gson-2.10.1.jar)
+
 ├── src/            # (Código fonte Java)
+
 │    └── Main.java
+
 └── README.md       # Documentação do projeto
 
 ## Execução
@@ -37,6 +42,7 @@ java -cp ".;lib\gson-2.10.1.jar;bin" Main
 ### Pelo terminal (Linux/Mac)
 
 javac -cp ".:lib/gson-2.10.1.jar" -d bin src/Main.java
+
 java -cp ".:lib/gson-2.10.1.jar:bin" Main
 
 ## Funcionalidades
